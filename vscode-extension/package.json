@@ -1,0 +1,41 @@
+{
+  "name": "pithagoras",
+  "displayName": "Pithagoras",
+  "description": "Pithagoras AI assistant panel inside VS Code",
+  "version": "0.1.0",
+  "publisher": "pontapalli",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pithagoras",
+          "title": "Pithagoras",
+          "icon": "icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "pithagoras": [
+        {
+          "type": "webview",
+          "id": "pithagoras.chat",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "pithagoras.open",
+        "title": "Pithagoras: Open Chat Panel"
+      },
+      {
+        "command": "pithagoras.reload",
+        "title": "Pithagoras: Reload"
+      }
+    ]
+  }
+}
