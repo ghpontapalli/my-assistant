@@ -1,12 +1,12 @@
-# Pithagoras Personal Assistant
+# My Assistant — Personal AI Assistant Setup
 
-A complete, self-contained setup that turns [Pithagoras](https://github.com/thecodacus/pithagoras) into a hands-free personal assistant on your Mac — with voice mode, a VS Code extension, Mac automation, multi-provider model routing, and auto-start at login.
+A complete, self-contained setup that turns [Pithagoras](https://github.com/thecodacus/pithagoras) into a hands-free personal AI assistant on your Mac — with voice mode, a VS Code extension, Mac automation, and auto-start at login.
 
 ## What you get
 
 - **Voice mode** using local Whisper (STT) and audio.cpp / Breeze-TTS (TTS) — fully offline, no API keys
-- **Pithagoras portal** auto-starts at login and opens in your browser
-- **VS Code extension** with a Pithagoras chat panel in the sidebar
+- **My Assistant portal** auto-starts at login and opens in your browser
+- **VS Code extension** with a My Assistant chat panel in the sidebar
 - **Mac automation** — open folders, apps, websites, compose emails by voice
 - **Multi-provider model routing** through OmniRoute, OpenRouter, Ollama, NVIDIA, and DeepSeek
 - **One-command setup** script
@@ -51,13 +51,13 @@ ollama pull qwen-32k
 ## Quick setup
 
 ```bash
-git clone https://github.com/ghpontapalli/pithagoras-assistant
-cd pithagoras-assistant
+git clone https://github.com/ghpontapalli/my-assistant
+cd my-assistant
 ./scripts/setup.sh
 ```
 
 The setup script:
-1. Clones and builds Pithagoras
+1. Clones and builds My Assistant
 2. Generates the `.env` config with your workspace path
 3. Creates the audio.cpp TTS server config (`server.json`)
 4. Installs the VS Code extension
