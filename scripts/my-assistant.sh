@@ -1,7 +1,7 @@
 #!/bin/bash
 # My Assistant service control: start, stop, status, load, unload
 
-LABELS=("com.my-assistant.tts" "com.my-assistant.stt" "com.my-assistant.portal" "com.my-assistant.open-portal")
+LABELS=("com.my-assistant.omniroute" "com.my-assistant.tts" "com.my-assistant.stt" "com.my-assistant.portal" "com.my-assistant.open-portal")
 PLIST_DIR="$HOME/Library/LaunchAgents"
 
 case "${1:-}" in

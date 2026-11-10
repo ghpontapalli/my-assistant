@@ -7,6 +7,7 @@ Built on the [pi coding agent](https://pi.dev) and its web portal.
 ## What you get
 
 - **Voice mode** using local Whisper (STT) and audio.cpp / Breeze-TTS (TTS) — fully offline, no API keys
+- **OmniRoute model router** auto-starts at login — routes to the best available model automatically
 - **Portal** auto-starts at login and opens in your browser
 - **VS Code extension** with a chat panel in the sidebar
 - **Mac automation** — open folders, apps, websites, compose emails by voice

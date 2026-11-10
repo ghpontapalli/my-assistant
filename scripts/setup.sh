@@ -100,6 +100,25 @@ mkdir -p "$LAUNCH_DIR"
 NODE_BIN="$(command -v node)"
 AUDIO_BIN="$(command -v audiocpp_server || echo /opt/homebrew/bin/audiocpp_server)"
 WHISPER_BIN="$(command -v whisper-server  || echo /opt/homebrew/bin/whisper-server)"
+OMNI_BIN="$(command -v omniroute || echo /opt/homebrew/bin/omniroute)"
+
+# OmniRoute (model router)
+cat > "$LAUNCH_DIR/com.my-assistant.omniroute.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>Label</key><string>com.my-assistant.omniroute</string>
+    <key>ProgramArguments</key><array>
+        <string>$NODE_BIN</string>
+        <string>$OMNI_BIN</string>
+    </array>
+    <key>EnvironmentVariables</key><dict>
+        <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><true/>
+</dict></plist>
+EOF
 
 cat > "$LAUNCH_DIR/com.my-assistant.tts.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -172,7 +191,7 @@ EOF
 
 # ---- Load launch agents ----
 info "Loading launch agents..."
-for label in com.my-assistant.tts com.my-assistant.stt com.my-assistant.portal com.my-assistant.open-portal; do
+for label in com.my-assistant.omniroute com.my-assistant.tts com.my-assistant.stt com.my-assistant.portal com.my-assistant.open-portal; do
   launchctl load "$LAUNCH_DIR/$label.plist" 2>/dev/null && info "loaded: $label" || warn "could not load: $label"
 done
 
