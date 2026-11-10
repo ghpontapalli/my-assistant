@@ -1,0 +1,1 @@
+{"host": "127.0.0.1", "port": 8081, "backend": "metal", "lazy_load": false, "max_loaded_models": 1, "models": [{"id": "breeze-tts-2", "family": "breeze_tts", "path": "REPLACE_WITH_PATH_TO/breeze-tts-2-q8_0.gguf", "task": "tts", "mode": "streaming", "default_request_options": {"instruct": "A friendly, responsive assistant speaking clearly and naturally."}}]}

@@ -1,0 +1,37 @@
+# Secrets and credentials — never commit these
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+auth.json
+auth_token
+
+# OmniRoute local data (contains API keys and call logs)
+.omniroute/
+
+# Node
+node_modules/
+*.log
+npm-debug.log*
+
+# VS Code extension build artifacts
+*.vsix
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local config that may contain keys
+config/server.json
+config/server.local.json
+*.local.json
