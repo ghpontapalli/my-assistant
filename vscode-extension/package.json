@@ -1,7 +1,7 @@
 {
-  "name": "pithagoras",
-  "displayName": "Pithagoras",
-  "description": "Pithagoras AI assistant panel inside VS Code",
+  "name": "my-assistant",
+  "displayName": "My Assistant",
+  "description": "My Assistant — personal AI chat panel inside VS Code",
   "version": "0.1.0",
   "publisher": "pontapalli",
   "engines": { "vscode": "^1.80.0" },
@@ -12,29 +12,29 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "pithagoras",
-          "title": "Pithagoras",
+          "id": "my-assistant",
+          "title": "My Assistant",
           "icon": "icon.svg"
         }
       ]
     },
     "views": {
-      "pithagoras": [
+      "my-assistant": [
         {
           "type": "webview",
-          "id": "pithagoras.chat",
+          "id": "my-assistant.chat",
           "name": "Chat"
         }
       ]
     },
     "commands": [
       {
-        "command": "pithagoras.open",
-        "title": "Pithagoras: Open Chat Panel"
+        "command": "my-assistant.open",
+        "title": "My Assistant: Open Chat Panel"
       },
       {
-        "command": "pithagoras.reload",
-        "title": "Pithagoras: Reload"
+        "command": "my-assistant.reload",
+        "title": "My Assistant: Reload"
       }
     ]
   }

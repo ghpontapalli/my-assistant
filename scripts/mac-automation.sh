@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mac Automation Helper for Pithagoras
+# Mac Automation Helper for My Assistant
 # Safe, scoped actions only. No arbitrary code execution.
 # Usage: mac-automation.sh <action> [argument]
 
@@ -55,7 +55,7 @@ EOF
     ;;
 
   notify)
-    osascript -e "display notification \"${ARG}\" with title \"Pithagoras\""
+    osascript -e "display notification \"${ARG}\" with title \"My Assistant\""
     echo "Notification sent"
     ;;
 

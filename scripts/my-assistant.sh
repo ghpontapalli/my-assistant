@@ -1,7 +1,7 @@
 #!/bin/bash
-# Pithagoras service control: start, stop, status, load, unload
+# My Assistant service control: start, stop, status, load, unload
 
-LABELS=("com.pithagoras.tts" "com.pithagoras.stt" "com.pithagoras.portal" "com.pithagoras.open-portal")
+LABELS=("com.my-assistant.tts" "com.my-assistant.stt" "com.my-assistant.portal" "com.my-assistant.open-portal")
 PLIST_DIR="$HOME/Library/LaunchAgents"
 
 case "${1:-}" in

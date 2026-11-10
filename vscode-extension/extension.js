@@ -2,7 +2,7 @@ const vscode = require("vscode");
 
 const PORTAL_URL = "http://127.0.0.1:4100";
 
-class PithagorasViewProvider {
+class MyAssistantViewProvider {
   constructor(extensionUri) {
     this._extensionUri = extensionUri;
     this._view = undefined;
@@ -51,11 +51,11 @@ class PithagorasViewProvider {
       <span class="dot"></span>
       <span class="dot"></span>
     </div>
-    <span>Connecting to Pithagoras...</span>
+    <span>Connecting to My Assistant...</span>
   </div>
   <iframe id="frame" src="${PORTAL_URL}" style="display:none;"
     onload="document.getElementById('loading').style.display='none';this.style.display='block';"
-    onerror="document.querySelector('#loading span:last-child').textContent='Could not reach Pithagoras at ${PORTAL_URL}. Make sure it is running.';">
+    onerror="document.querySelector('#loading span:last-child').textContent='Could not reach My Assistant at ${PORTAL_URL}. Make sure it is running.';">
   </iframe>
 </body>
 </html>`;
@@ -63,22 +63,22 @@ class PithagorasViewProvider {
 }
 
 function activate(context) {
-  const provider = new PithagorasViewProvider(context.extensionUri);
+  const provider = new MyAssistantViewProvider(context.extensionUri);
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("pithagoras.chat", provider, {
+    vscode.window.registerWebviewViewProvider("my-assistant.chat", provider, {
       webviewOptions: { retainContextWhenHidden: true },
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("pithagoras.open", () => {
-      vscode.commands.executeCommand("pithagoras.chat.focus");
+    vscode.commands.registerCommand("my-assistant.open", () => {
+      vscode.commands.executeCommand("my-assistant.chat.focus");
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("pithagoras.reload", () => {
+    vscode.commands.registerCommand("my-assistant.reload", () => {
       provider.reload();
     })
   );

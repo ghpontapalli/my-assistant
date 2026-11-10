@@ -5,7 +5,7 @@ description: Use when the person asks to open a folder, open a website, open an 
 
 # Mac Automation
 
-The person uses Pithagoras with voice mode and wants hands-free control of their Mac. A scoped shell script performs a fixed set of safe actions.
+The person uses My Assistant with voice mode and wants hands-free control of their Mac. A scoped shell script performs a fixed set of safe actions.
 
 ## The script
 
@@ -23,7 +23,7 @@ bash <agent-home>/mac-automation.sh <action> [argument]
 - `open-url <url>` — opens a URL in the default browser. URL must start with `http://` or `https://`.
 - `open-app <name>` — opens an app. Allowed: Safari, Firefox, Google Chrome, Visual Studio Code, Finder, Terminal, Notes, Calendar, Mail, Slack, Spotify, WhatsApp.
 - `compose-email <to|subject|body>` — opens Mail with a pre-filled draft. Pipe `|` separates recipient, subject and body.
-- `notify <message>` — shows a macOS notification titled Pithagoras.
+- `notify <message>` — shows a macOS notification titled My Assistant.
 - `list-folder <path>` — lists contents of a folder (defaults to home).
 
 ## How to use it
