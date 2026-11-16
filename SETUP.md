@@ -17,12 +17,15 @@ This guide walks through every step to set up My Assistant on a fresh Mac. Follo
 11. [Configure voice mode](#11-configure-voice-mode)
 12. [Install the VS Code extension](#12-install-the-vs-code-extension)
 13. [macOS menu-bar control app](#13-macos-menu-bar-control-app)
-14. [Verify everything works](#14-verify-everything-works)
-15. [Daily usage](#15-daily-usage)
-16. [Stopping and disabling](#16-stopping-and-disabling)
-17. [Configuration reference](#17-configuration-reference)
-18. [Troubleshooting](#18-troubleshooting)
-19. [Security checklist](#19-security-checklist)
+14. [Streaming TTS](#14-streaming-tts)
+15. [Health-check supervisor](#15-health-check-supervisor)
+16. [Vision / image input](#16-vision--image-input)
+17. [Verify everything works](#17-verify-everything-works)
+18. [Daily usage](#18-daily-usage)
+19. [Stopping and disabling](#19-stopping-and-disabling)
+20. [Configuration reference](#20-configuration-reference)
+21. [Troubleshooting](#21-troubleshooting)
+22. [Security checklist](#22-security-checklist)
 
 ---
 
@@ -284,7 +287,94 @@ A menu-bar status item (`control/Control.swift`) shows live status of all servic
 - **The script path is configurable** via the `LIFECYCLE_SCRIPT` env variable.
 - **Quit:** click "Quit control" in the menu, or `killall PithagorasControl`.
 
-## 14. Verify everything works
+## 14. Streaming TTS
+
+The streaming TTS pipeline feeds LLM output to the TTS engine incrementally,
+reducing perceived latency from "wait for whole response" to "start speaking
+at first sentence."
+
+```bash
+# Speak a text string directly
+./scripts/stream-tts.sh speak "Hello world. How are you today?"
+
+# Stream a full LLM response
+./scripts/stream-tts.sh stream "Explain quantum computing in simple terms"
+
+# Self-test
+./scripts/stream-tts.sh test
+```
+
+**How it works:** Ollama streams tokens via `/api/chat` with `stream: true`.
+Each token is accumulated into a buffer. When a sentence boundary is hit
+(`.`, `!`, `?`, `\n`), the chunk is sent to the TTS engine, which returns
+audio. All audio chunks are concatenated and played via `afplay`.
+
+**Env vars:** `TTS_URL`, `TTS_MODEL`, `VOICE`, `OLLAMA_URL`, `OLLAMA_MODEL`.
+
+## 15. Health-check supervisor
+
+A background monitor that watches Ollama, TTS, STT, and the portal for
+liveness. If any service dies, it restarts it. It also switches to a
+lighter-weight model when thermal throttling or low battery is detected.
+
+```bash
+./scripts/supervisor.sh check      # one-shot health check
+./scripts/supervisor.sh monitor    # continuous monitoring (default)
+./scripts/supervisor.sh model      # show recommended model
+./scripts/supervisor.sh restart    # restart all services
+```
+
+**Thermal-aware model selection:**
+
+| Condition | Action |
+|-----------|--------|
+| Thermal level \u2265 2 | Switch to `tinyllama:1.1b` (lightest) |
+| CPU \u2265 80% | Switch to `phi3:mini` |
+| Memory \u2265 12GB used | Switch to `phi3:mini` |
+| On battery power | Switch to `mistral:7b` |
+| Default | Stay on current model (`qwen-32k`) |
+
+**Env vars:** `OLLAMA_URL`, `TTS_PORT`, `STT_PORT`, `PORTAL_PORT`, `CHECK_INTERVAL`.
+
+## 16. Vision / image input
+
+The assistant can understand images through vision-capable Ollama models.
+
+**Pull a vision model first:**
+
+```bash
+ollama pull llava
+# or: ollama pull minicpm-v
+```
+
+**Usage:**
+
+```bash
+# Analyze an image
+./scripts/vision.sh analyze photo.jpg "What is in this image?"
+
+# Capture a screenshot and analyze it
+./scripts/vision.sh capture "What is on my screen?"
+
+# List available vision models
+./scripts/vision.sh models
+
+# Self-test
+./scripts/vision.sh test
+```
+
+**Vision model reference:**
+
+| Model | RAM | Context | Best for |
+|-------|-----|---------|----------|
+| `llava` | 12GB | 4096 | General image analysis |
+| `llava-phi3` | 8GB | 4096 | Light image analysis |
+| `qwen2-vl:7b` | 12GB | 8192 | Multilingual vision + OCR |
+| `minicpm-v` | 8GB | 8192 | Compact, good quality |
+
+**Env vars:** `VISION_MODEL`, `OLLAMA_URL`.
+
+## 17. Verify everything works
 
 Run the status check:
 
@@ -316,7 +406,7 @@ curl -s http://127.0.0.1:8082/ -o /dev/null -w "%{http_code}"
 curl -s http://127.0.0.1:4100 -o /dev/null -w "%{http_code}"
 ```
 
-## 15. Daily usage
+## 18. Daily usage
 
 ### From a cold boot (after setup is done)
 1. Log in to your Mac
@@ -341,7 +431,7 @@ Allowed apps: Safari, Firefox, Google Chrome, Visual Studio Code, Finder, Termin
 ### Switching models
 Type `/model` in any chat to switch models on the fly.
 
-## 16. Stopping and disabling
+## 19. Stopping and disabling
 
 ```bash
 # Check what's running
@@ -360,7 +450,7 @@ Type `/model` in any chat to switch models on the fly.
 ./scripts/my-assistant.sh load
 ```
 
-## 17. Configuration reference
+## 20. Configuration reference
 
 All config lives in `.env` at the top of the cloned core. Key variables:
 
@@ -391,7 +481,7 @@ The wizard also writes `config/sample-config.json` with your model selection:
 }
 ```
 
-## 18. Troubleshooting
+## 21. Troubleshooting
 
 ### Ollama not running
 ```bash
@@ -463,7 +553,7 @@ Make sure launch agents are loaded:
 chmod +x scripts/setup.sh scripts/my-assistant.sh scripts/mac-automation.sh
 ```
 
-## 19. Security checklist
+## 22. Security checklist
 
 - [x] All servers bind to `127.0.0.1` only — nothing exposed to your network
 - [x] No API keys stored in the repository — `.gitignore` blocks `.env`, `auth.json`, `credentials.json`, `*.key`, `*.pem`
