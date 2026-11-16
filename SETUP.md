@@ -314,27 +314,40 @@ audio. All audio chunks are concatenated and played via `afplay`.
 ## 15. Health-check supervisor
 
 A background monitor that watches Ollama, TTS, STT, and the portal for
-liveness. If any service dies, it restarts it. It also switches to a
-lighter-weight model when thermal throttling or low battery is detected.
+liveness. If any service dies, it restarts it. Instead of switching models
+(which loses context and quality), it **throttles workload** under resource
+stress — the model stays the same, only the load changes.
 
 ```bash
 ./scripts/supervisor.sh check      # one-shot health check
 ./scripts/supervisor.sh monitor    # continuous monitoring (default)
-./scripts/supervisor.sh model      # show recommended model
+./scripts/supervisor.sh throttle   # show current throttle level
+./scripts/supervisor.sh priority   # show Ollama process priority
 ./scripts/supervisor.sh restart    # restart all services
 ```
 
-**Thermal-aware model selection:**
+**Throttle levels (not model switches):**
 
-| Condition | Action |
-|-----------|--------|
-| Thermal level \u2265 2 | Switch to `tinyllama:1.1b` (lightest) |
-| CPU \u2265 80% | Switch to `phi3:mini` |
-| Memory \u2265 12GB used | Switch to `phi3:mini` |
-| On battery power | Switch to `mistral:7b` |
-| Default | Stay on current model (`qwen-32k`) |
+| Level | Condition | Action |
+|-------|-----------|--------|
+| 0 | Normal | Full power, no restrictions |
+| 1 | On battery / CPU \u2265 70% / Thermal warning | Interactive only, skip background tasks |
+| 2 | CPU \u2265 90% / Thermal critical / Memory \u2265 14GB | Pause non-critical LLM work |
+| 3 | Battery < 15% | Full pause, only voice input until recharged |
 
-**Env vars:** `OLLAMA_URL`, `TTS_PORT`, `STT_PORT`, `PORTAL_PORT`, `CHECK_INTERVAL`.
+**Process priority adjustment** (instead of model swap):
+
+| Throttle | Ollama nice | Effect |
+|----------|------------|--------|
+| 1 | 5 | Lower priority, system can breathe |
+| 2 | 10 | Heavy throttling |
+| 3 | 15 | Near-zero priority, only when idle |
+
+**Why not switch models?** Switching loses conversation context, changes
+the assistant's voice/style, and can take minutes to reload a large model.
+Throttling keeps quality constant while protecting the machine.
+
+**Env vars:** `OLLAMA_URL`, `TTS_PORT`, `STT_PORT`, `PORTAL_PORT`, `CHECK_INTERVAL`, `STATE_FILE`.
 
 ## 16. Vision / image input
 
