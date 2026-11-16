@@ -48,13 +48,16 @@ function detectHardware() {
 
 // ── Model catalog ──────────────────────────────────────────────────────────
 // Tiers map RAM → recommended Ollama model. Sizes are approximate.
+// Text models are for general use; vision models add image understanding.
 const MODELS = [
+  // ── Text-only models ──
   {
     label: "tinyllama:1.1b",
     note: "fastest, fits 2GB RAM",
     context: 2048,
     minRam: 2,
     useCase: "Light tasks, quick responses, low-end devices",
+    vision: false,
   },
   {
     label: "phi3:mini",
@@ -62,6 +65,7 @@ const MODELS = [
     context: 4096,
     minRam: 4,
     useCase: "General coding, reasoning, chat — good default",
+    vision: false,
   },
   {
     label: "llama3:8b",
@@ -69,6 +73,7 @@ const MODELS = [
     context: 8192,
     minRam: 12,
     useCase: "Complex coding, long context, multi-step reasoning",
+    vision: false,
   },
   {
     label: "llama3:8b-instruct-q4_K_M",
@@ -76,6 +81,7 @@ const MODELS = [
     context: 8192,
     minRam: 8,
     useCase: "Complex coding on 8GB machines (slower than 16GB)",
+    vision: false,
   },
   {
     label: "mistral:7b",
@@ -83,6 +89,7 @@ const MODELS = [
     context: 8192,
     minRam: 8,
     useCase: "Fast coding, good balance of speed/quality",
+    vision: false,
   },
   {
     label: "qwen2:7b",
@@ -90,6 +97,7 @@ const MODELS = [
     context: 32768,
     minRam: 8,
     useCase: "Multilingual tasks, long context",
+    vision: false,
   },
   {
     label: "qwen-32k",
@@ -97,6 +105,7 @@ const MODELS = [
     context: 32768,
     minRam: 12,
     useCase: "Long documents, large codebases",
+    vision: false,
   },
   {
     label: "qwen-64k",
@@ -104,6 +113,40 @@ const MODELS = [
     context: 65536,
     minRam: 24,
     useCase: "Very long context, large projects",
+    vision: false,
+  },
+  // ── Vision-capable models ──
+  {
+    label: "llava",
+    note: "vision + text, fits 12GB RAM",
+    context: 4096,
+    minRam: 12,
+    useCase: "Image analysis, visual Q&A, screenshot understanding",
+    vision: true,
+  },
+  {
+    label: "llava-phi3",
+    note: "compact vision, fits 8GB RAM",
+    context: 4096,
+    minRam: 8,
+    useCase: "Light image analysis on 8GB machines",
+    vision: true,
+  },
+  {
+    label: "qwen2-vl:7b",
+    note: "multilingual vision, fits 12GB RAM",
+    context: 8192,
+    minRam: 12,
+    useCase: "Multilingual image analysis, OCR, document understanding",
+    vision: true,
+  },
+  {
+    label: "minicpm-v",
+    note: "compact vision, fits 8GB RAM",
+    context: 8192,
+    minRam: 8,
+    useCase: "Compact vision with good quality",
+    vision: true,
   },
 ];
 
@@ -128,22 +171,35 @@ async function main() {
   const hw = detectHardware();
 
   // 2. Ask user to pick or auto-select
-  const auto = await ask(`\nAuto-select best model for your ${hw.totalMemGB}GB RAM? [Y/n] `).trim().toLowerCase();
+  const wantVision = await ask(`\nDo you need image/vision support? [Y/n] `).trim().toLowerCase();
   let model;
 
+  const candidateModels = wantVision === "n" ? MODELS.filter(m => !m.vision) : MODELS;
+
+  const auto = await ask(`\nAuto-select best model for your ${hw.totalMemGB}GB RAM? [Y/n] `).trim().toLowerCase();
+
   if (auto !== "n") {
-    model = recommendModel(hw);
-    console.log(c.green(`\n✓ Auto-selected: ${model.label}  (context: ${model.context} tokens, needs ${model.minRam}GB RAM)`));
+    const fit = candidateModels.filter((m) => m.minRam <= hw.totalMemGB);
+    if (!fit.length) {
+      console.log(c.yellow(`\n⚠  Your ${hw.totalMemGB}GB RAM is too low for ${wantVision === 'n' ? 'text' : 'vision'} models.`));
+      model = MODELS[0];
+    } else {
+      model = fit.sort((a, b) => b.minRam - a.minRam)[0];
+    }
+    const visionBadge = model.vision ? `  ${c.cyan("[VISION]")}` : "";
+    console.log(c.green(`\n✓ Auto-selected: ${model.label}${visionBadge}  (context: ${model.context} tokens, needs ${model.minRam}GB RAM)`));
     console.log(c.dim(`  Use case: ${model.useCase}`));
   } else {
-    const options = MODELS.map((m) => ({
+    const options = candidateModels.map((m) => ({
       label: m.label,
-      note: `${m.minRam}GB+ RAM, ${m.context} ctx — ${m.useCase}`,
+      note: `${m.minRam}GB+ RAM, ${m.context} ctx${m.vision ? ' [VISION]' : ''} — ${m.useCase}`,
     }));
-    const defIdx = Math.max(0, MODELS.indexOf(recommendModel(hw)));
-    model = (await pick("Select your Ollama model:", options, defIdx)).label;
-    model = MODELS.find((m) => m.label === model) || MODELS[1];
-    console.log(c.green(`\n✓ Selected: ${model.label}`));
+    const fit = candidateModels.filter((m) => m.minRam <= hw.totalMemGB);
+    const defIdx = Math.max(0, candidateModels.indexOf(fit.sort((a, b) => b.minRam - a.minRam)[0] || candidateModels[0]));
+    const picked = await pick(`Select your Ollama model:`, options, defIdx);
+    model = candidateModels.find((m) => m.label === picked.label) || candidateModels[0];
+    const visionBadge = model.vision ? `  ${c.cyan("[VISION]")}` : "";
+    console.log(c.green(`\n✓ Selected: ${model.label}${visionBadge}`));
   }
 
   // 3. Ollama check
@@ -177,12 +233,15 @@ async function main() {
   // 5. Write config
   const config = {
     model: model.label,
+    vision: model.vision || false,
     context_length: model.context,
     hardware: `${hw.totalMemGB}GB RAM, ${hw.cores} cores, ${hw.osName}`,
     ollama: {
       url: "http://127.0.0.1:11434",
       enabled: true,
     },
+    vision_model: model.vision ? model.label : null,
+    streaming_tts: true,
     created_at: new Date().toISOString(),
   };
 

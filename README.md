@@ -187,6 +187,80 @@ services and lets you start/stop them without a terminal:
 
 ---
 
+## Advanced features
+
+### Streaming TTS
+
+Instead of waiting for the full LLM response before starting to speak, the
+assistant pipes LLM output through a sentence-boundary chunker and feeds audio
+chunks to the TTS engine as they arrive. This cuts perceived latency from
+"wait for whole response" to "start speaking at first sentence."
+
+**Usage:**
+
+```bash
+# Speak a text string directly
+./scripts/stream-tts.sh speak "Hello world. How are you today?"
+
+# Stream a full LLM response
+./scripts/stream-tts.sh stream "Explain quantum computing in simple terms"
+
+# Self-test
+./scripts/stream-tts.sh test
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TTS_URL` | `http://127.0.0.1:8081/v1/audio/speech` | TTS endpoint |
+| `TTS_MODEL` | `breeze-tts-2` | TTS model name |
+| `VOICE` | `default` | Voice to use |
+| `OLLAMA_MODEL` | `qwen-32k` | Model to stream from |
+
+### Health-check supervisor
+
+A background monitor that watches Ollama, TTS, STT, and the portal for
+liveness. If any service dies, it restarts it. It also switches to a
+lighter-weight model when thermal throttling or low battery is detected.
+
+| Condition | Action |
+|-----------|--------|
+| Thermal level \u2265 2 | Switch to `tinyllama:1.1b` (lightest) |
+| CPU \u2265 80% | Switch to `phi3:mini` |
+| Memory \u2265 12GB used | Switch to `phi3:mini` |
+| On battery power | Switch to `mistral:7b` |
+| Default | Stay on current model (`qwen-32k`) |
+
+**Usage:**
+
+```bash
+./scripts/supervisor.sh check      # one-shot health check
+./scripts/supervisor.sh monitor    # continuous monitoring
+./scripts/supervisor.sh model      # show recommended model
+./scripts/supervisor.sh restart    # restart all services
+```
+
+### Vision / image input
+
+The assistant can understand images through vision-capable Ollama models.
+
+| Model | RAM | Context | Best for |
+|-------|-----|---------|----------|
+| `llava` | 12GB | 4096 | General image analysis |
+| `llava-phi3` | 8GB | 4096 | Light image analysis |
+| `qwen2-vl:7b` | 12GB | 8192 | Multilingual vision + OCR |
+| `minicpm-v` | 8GB | 8192 | Compact, good quality |
+
+**Usage:**
+
+```bash
+./scripts/vision.sh analyze photo.jpg "What is in this image?"
+./scripts/vision.sh capture "What is on my screen?"  # screenshot + analyze
+./scripts/vision.sh models                             # list available models
+./scripts/vision.sh test                               # self-test
+```
+
+---
+
 ## Project structure
 
 ```
@@ -201,7 +275,10 @@ my-assistant/
 ├── scripts/
 │   ├── setup.sh           ← one-command setup (clones core, builds, configures)
 │   ├── my-assistant.sh    ← start/stop all services via LaunchAgents
-│   └── mac-automation.sh  ← safe, scoped macOS automation helper
+│   ├── mac-automation.sh  ← safe, scoped macOS automation helper
+│   ├── stream-tts.sh      ← streaming TTS pipeline
+│   ├── supervisor.sh      ← health-check + thermal-aware model selector
+│   └── vision.sh          ← image analysis via vision models
 │
 ├── control/
 │   └── Control.swift      ← macOS menu-bar app source
