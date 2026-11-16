@@ -5,21 +5,24 @@ This guide walks through every step to set up My Assistant on a fresh Mac. Follo
 ## Table of Contents
 
 1. [Prerequisites](#1-prerequisites)
-2. [Install Homebrew and core tools](#2-install-homebrew-and-core-tools)
-3. [Install voice servers](#3-install-voice-servers)
-4. [Download voice models](#4-download-voice-models)
-5. [Install Ollama and local models (optional)](#5-install-ollama-and-local-models-optional)
-6. [Install Docker Desktop](#6-install-docker-desktop)
-7. [Clone and run setup](#7-clone-and-run-setup)
-8. [First login and configuration](#8-first-login-and-configuration)
-9. [Configure providers (models)](#9-configure-providers-models)
-10. [Configure voice mode](#10-configure-voice-mode)
-11. [Install the VS Code extension](#11-install-the-vs-code-extension)
-12. [Verify everything works](#12-verify-everything-works)
-13. [Daily usage](#13-daily-usage)
-14. [Stopping and disabling](#14-stopping-and-disabling)
-15. [Troubleshooting](#15-troubleshooting)
-16. [Security checklist](#16-security-checklist)
+2. [Hardware-aware model selection (TUI wizard)](#2-hardware-aware-model-selection-tui-wizard)
+3. [Install Homebrew and core tools](#3-install-homebrew-and-core-tools)
+4. [Install voice servers](#4-install-voice-servers)
+5. [Download voice models](#5-download-voice-models)
+6. [Install Ollama and local models (optional)](#6-install-ollama-and-local-models-optional)
+7. [Install Docker Desktop](#7-install-docker-desktop)
+8. [Clone and run setup](#8-clone-and-run-setup)
+9. [First login and configuration](#9-first-login-and-configuration)
+10. [Configure providers (models)](#10-configure-providers-models)
+11. [Configure voice mode](#11-configure-voice-mode)
+12. [Install the VS Code extension](#12-install-the-vs-code-extension)
+13. [macOS menu-bar control app](#13-macos-menu-bar-control-app)
+14. [Verify everything works](#14-verify-everything-works)
+15. [Daily usage](#15-daily-usage)
+16. [Stopping and disabling](#16-stopping-and-disabling)
+17. [Configuration reference](#17-configuration-reference)
+18. [Troubleshooting](#18-troubleshooting)
+19. [Security checklist](#19-security-checklist)
 
 ---
 
@@ -32,7 +35,35 @@ You need:
 - An internet connection for the initial setup
 - Admin access to your Mac (for Homebrew and launch agents)
 
-## 2. Install Homebrew and core tools
+## 2. Hardware-aware model selection (TUI wizard)
+
+Before or after the full setup, you can run the interactive wizard to pick the best Ollama model for your Mac:
+
+```bash
+node setup.js
+```
+
+The wizard:
+
+1. **Detects your hardware** — RAM and CPU core count.
+2. **Recommends a model** — from 8 options, filtered by your RAM.
+3. **Checks Ollama connectivity** — confirms `http://127.0.0.1:11434` is reachable.
+4. **Optionally pulls the model** — if Ollama is running and the model isn't installed.
+5. **Writes a sample config** — `config/sample-config.json` for the portal to read.
+
+| RAM | Recommended model | Context | Use case |
+|-----|------------------|---------|----------|
+| < 8 GB | `tinyllama:1.1b` | 2,048 | Light tasks, quick responses |
+| 8 GB | `phi3:mini` | 4,096 | General coding, reasoning, chat |
+| 16 GB | `llama3:8b` | 8,192 | Complex coding, multi-step reasoning |
+| 8 GB (alt) | `mistral:7b` | 8,192 | Fast coding, speed/quality balance |
+| 8 GB (alt) | `qwen2:7b` | 32,768 | Multilingual tasks, long context |
+| 16 GB | `qwen-32k` | 32,768 | Long documents, large codebases |
+| 32 GB | `qwen-64k` | 65,536 | Very long context, large projects |
+
+> **Tip:** For `qwen3` models, use `context_length: 32768` and `OLLAMA_FLASH_ATTENTION=1` for best performance. Quantized `q4_K_M` or `q8_0` variants fit better in limited RAM.
+
+## 3. Install Homebrew and core tools
 
 Open Terminal and run:
 
@@ -54,7 +85,7 @@ node --version    # should show v18 or higher
 git --version
 ```
 
-## 3. Install voice servers
+## 4. Install voice servers
 
 My Assistant uses two local servers for voice mode:
 
@@ -72,7 +103,7 @@ which whisper-server
 which audiocpp_server
 ```
 
-## 4. Download voice models
+## 5. Download voice models
 
 These models run fully on your Mac. No internet needed after download.
 
@@ -97,7 +128,7 @@ Download `breeze-tts-2-q8_0.gguf` from HuggingFace and place it at:
 
 The setup script creates the server config (`server.json`) automatically. If you want to create it manually, see `config/server.json.template` in this repo.
 
-## 5. Install Ollama and local models (optional)
+## 6. Install Ollama and local models (optional)
 
 Ollama lets you run LLMs locally with no internet. This is optional — OmniRoute and cloud providers work without it.
 
@@ -108,7 +139,7 @@ brew install ollama
 # Start it once to enable the background service
 ollama serve &
 
-# Pull Qwen models
+# Pull recommended models
 ollama pull qwen-64k
 ollama pull qwen-32k
 ```
@@ -118,7 +149,7 @@ Enable Ollama to start at login:
 - Go to Ollama menu bar icon → Settings
 - Enable "Run at login"
 
-## 6. Install Docker Desktop
+## 7. Install Docker Desktop
 
 Docker is required for the Browser extension (agent-driven web browsing).
 
@@ -130,7 +161,7 @@ Docker is required for the Browser extension (agent-driven web browsing).
 
 After this, Docker starts automatically on every login and stays signed in.
 
-## 7. Clone and run setup
+## 8. Clone and run setup
 
 ```bash
 git clone https://github.com/ghpontapalli/my-assistant
@@ -140,15 +171,16 @@ chmod +x scripts/setup.sh scripts/my-assistant.sh
 ```
 
 The setup script does all of this automatically:
-1. Clones and builds the core portal
-2. Generates a secure `.env` with a random portal secret
-3. Creates the audio.cpp TTS server config
-4. Copies the Mac automation scripts
-5. Creates launch agents for auto-start at login (OmniRoute, TTS, STT, portal, browser auto-open)
-6. Launches Docker Desktop
-7. Builds and installs the VS Code extension
+1. Runs the hardware-aware TUI wizard (`node setup.js`)
+2. Clones and builds the core portal
+3. Generates a secure `.env` with a random portal secret
+4. Creates the audio.cpp TTS server config
+5. Copies the Mac automation scripts
+6. Creates launch agents for auto-start at login (OmniRoute, TTS, STT, portal, browser auto-open)
+7. Launches Docker Desktop
+8. Builds and installs the VS Code extension
 
-## 8. First login and configuration
+## 9. First login and configuration
 
 After setup completes:
 
@@ -156,7 +188,7 @@ After setup completes:
 2. You'll be asked to set a password — choose one and remember it
 3. This password is stored locally on your Mac only
 
-## 9. Configure providers (models)
+## 10. Configure providers (models)
 
 Go to **Settings → Providers** in the portal. Your setup already includes OmniRoute as the default provider. Here's how to add more:
 
@@ -198,7 +230,7 @@ At any time:
 - Go to Settings → Defaults and pick a model, or
 - Type `/model` in any chat to switch mid-conversation
 
-## 10. Configure voice mode
+## 11. Configure voice mode
 
 Go to **Settings → Extensions → Voice servers** and enter:
 
@@ -215,7 +247,7 @@ Click **Save**, then click **Use for voice mode**.
 
 The microphone button in the chat now activates. Click it and start talking.
 
-## 11. Install the VS Code extension
+## 12. Install the VS Code extension
 
 The setup script installs it automatically. If you need to do it manually:
 
@@ -227,7 +259,32 @@ code --install-extension my-assistant-0.1.0.vsix
 
 Then reload VS Code (Command+Shift+P → "Reload Window"). The My Assistant icon appears in your activity bar.
 
-## 12. Verify everything works
+## 13. macOS menu-bar control app
+
+A menu-bar status item (`control/Control.swift`) shows live status of all services and lets you start/stop them without a terminal:
+
+```
+  ●  🌐  Portal
+  ●  🧠  Ollama
+  ●  🔀  OmniRoute
+  ●  🎤  Voice
+  ○  🐳  Docker
+
+  ▶  Start Pithagoras
+  ⏻  Stop Pithagoras
+  🎤  Voice ON
+  🔇  Voice OFF
+  ↻  Refresh status
+  ────
+  Quit control
+```
+
+- **Green dot** = running. **Grey dot** = stopped.
+- **Build & run:** `./scripts/my-assistant.sh control`
+- **The script path is configurable** via the `LIFECYCLE_SCRIPT` env variable.
+- **Quit:** click "Quit control" in the menu, or `killall PithagorasControl`.
+
+## 14. Verify everything works
 
 Run the status check:
 
@@ -259,7 +316,7 @@ curl -s http://127.0.0.1:8082/ -o /dev/null -w "%{http_code}"
 curl -s http://127.0.0.1:4100 -o /dev/null -w "%{http_code}"
 ```
 
-## 13. Daily usage
+## 15. Daily usage
 
 ### From a cold boot (after setup is done)
 1. Log in to your Mac
@@ -284,7 +341,7 @@ Allowed apps: Safari, Firefox, Google Chrome, Visual Studio Code, Finder, Termin
 ### Switching models
 Type `/model` in any chat to switch models on the fly.
 
-## 14. Stopping and disabling
+## 16. Stopping and disabling
 
 ```bash
 # Check what's running
@@ -303,16 +360,71 @@ Type `/model` in any chat to switch models on the fly.
 ./scripts/my-assistant.sh load
 ```
 
-## 15. Troubleshooting
+## 17. Configuration reference
 
-### Portal won't connect to the AI
-Check if OmniRoute is running:
-```bash
-curl -s http://127.0.0.1:20128/v1/models -H "Authorization: Bearer YOUR_KEY"
+All config lives in `.env` at the top of the cloned core. Key variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `4100` | Portal port |
+| `EXECUTOR` | `host` | Executor mode (`host` or `container`) |
+| `WORKSPACES_DIR` | `~/Documents` | Workspace directory |
+| `PORTAL_DATA_DIR` | `~/.my-assistant-data` | Data directory |
+| `PORTAL_SECRET` | *(random)* | Session cookie secret |
+| `STOP_ON_LOGOUT` | `false` | Whether to stop services on logout |
+| `LIFECYCLE_SCRIPT` | `scripts/my-assistant.sh` | Path to control script (menu-bar app) |
+
+The wizard also writes `config/sample-config.json` with your model selection:
+
+```json
+{
+  "model": "qwen-32k",
+  "context_length": 32768,
+  "hardware": {
+    "ram_gb": 16,
+    "cpu_cores": 8
+  },
+  "ollama": {
+    "url": "http://127.0.0.1:11434",
+    "enabled": true
+  }
+}
 ```
-If it's not responding, start it:
+
+## 18. Troubleshooting
+
+### Ollama not running
 ```bash
-./scripts/my-assistant.sh start
+brew services start ollama
+# or
+ollama serve &
+```
+
+### Portal not starting
+```bash
+# Check the launch agent
+launchctl print gui/$(id -u)/com.my-assistant.portal
+# Check the log
+tail -f ~/.my-assistant-data/portal.log
+```
+
+### Menu-bar app not showing
+```bash
+./scripts/my-assistant.sh control
+# or rebuild manually
+swiftc control/Control.swift -o control/PithagorasControl -framework AppKit
+killall PithagorasControl 2>/dev/null
+LIFECYCLE_SCRIPT="$PWD/scripts/my-assistant.sh" control/PithagorasControl &
+```
+
+### Model too slow
+Re-run the TUI wizard to pick a smaller model:
+```bash
+node setup.js
+```
+Or manually pull a smaller model:
+```bash
+ollama pull tinyllama:1.1b
 ```
 
 ### Voice mode doesn't hear me
@@ -351,7 +463,7 @@ Make sure launch agents are loaded:
 chmod +x scripts/setup.sh scripts/my-assistant.sh scripts/mac-automation.sh
 ```
 
-## 16. Security checklist
+## 19. Security checklist
 
 - [x] All servers bind to `127.0.0.1` only — nothing exposed to your network
 - [x] No API keys stored in the repository — `.gitignore` blocks `.env`, `auth.json`, `credentials.json`, `*.key`, `*.pem`

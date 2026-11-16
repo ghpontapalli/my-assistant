@@ -1,263 +1,369 @@
-# My Assistant — Personal AI Assistant
+# My Assistant
 
-A complete, self-contained setup that gives you a hands-free personal AI assistant on your Mac — with voice mode, a VS Code extension, Mac automation, multi-provider model routing, and auto-start at login.
+**A private, always-on AI assistant for macOS** — powered by a voice-first,
+hardware-aware, model-routed agent that lives on your own machine. No cloud
+dependency, no data leaves your laptop.
 
-Built on the [pi coding agent](https://pi.dev) and its web portal.
+> **One click → a working AI copilot.** Hardware-aware model selection,
+> voice in and out, routed to the right model, and a macOS menu-bar toggle.
 
-## What you get
+---
 
-- **Voice mode** using local Whisper (STT) and audio.cpp / Breeze-TTS (TTS) — fully offline, no API keys
-- **OmniRoute model router** auto-starts at login — routes to the best available model automatically
-- **Portal** auto-starts at login and opens in your browser
-- **VS Code extension** with a chat panel in the sidebar
-- **Mac automation** — open folders, apps, websites, compose emails by voice
-- **Multi-provider model routing** through OmniRoute, OpenRouter, Ollama, NVIDIA, and DeepSeek
-- **One-command setup** script
+## What it is
 
-## Prerequisites
+My Assistant is a thin, opinionated wrapper on top of the [Pithagoras](https://github.com/thecodacus/pithagoras)
+agent core (a pi coding agent with a web portal). It adds:
 
-| Tool | Install |
-|---|---|
-| macOS (Apple Silicon recommended) | — |
-| [Homebrew](https://brew.sh) | `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` |
-| [Node.js](https://nodejs.org) 18+ | `brew install node` |
-| [whisper.cpp](https://github.com/ggml-org/whisper.cpp) | `brew install whisper-cpp` |
-| [audio.cpp](https://github.com/ggml-org/audio.cpp) | `brew install audio-cpp` |
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Download and install |
-| [VS Code or Cursor](https://code.visualstudio.com) | Download and install |
-| [Ollama](https://ollama.com) (optional, for local models) | `brew install ollama` or download |
+- **Voice mode** — speak to it (browser Whisper STT) and hear it back (Breeze TTS).
+- **Ollama integration** — run a local LLM entirely on your machine.
+- **Hardware-aware model selection** — a TUI wizard that picks the best model for your RAM.
+- **OmniRoute** — a model router that picks the right model per task.
+- **Self-hosted portal** — the agent's web UI, auto-started on boot.
+- **VS Code extension** — chat with it from inside VS Code.
+- **macOS control app** — a menu-bar icon to start/stop services without a terminal.
+- **macOS automation** — open folders, apps, URLs, emails, and send notifications.
+- **Multi-provider routing** — one provider per provider type (OpenAI, Anthropic, …).
+- **TUI-based setup wizard** — a guided, interactive setup in your terminal.
 
-## Models
+---
 
-### Voice models
+## Why it exists
 
-```bash
-# Whisper STT model (base English, ~150MB)
-mkdir -p ~/models/whisper
-curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin \
-  -o ~/models/whisper/ggml-base.en.bin
+Running an AI assistant on a laptop should not require:
+- spinning up a cloud VM,
+- configuring a dozen environment variables by hand,
+- choosing the right model by trial and error, or
+- opening a terminal every time you want to toggle it on or off.
 
-# Breeze TTS model (~5GB)
-mkdir -p ~/models/audio-cpp/Breeze-TTS-2-GGUF
-# Download breeze-tts-2-q8_0.gguf from HuggingFace
-# and place it at ~/models/audio-cpp/Breeze-TTS-2-GGUF/breeze-tts-2-q8_0.gguf
+My Assistant collapses all of that into **one command + a menu-bar icon**:
+
+1. Clone the repo.
+2. Run the setup script (or the TUI wizard first to pick a model).
+3. Start it from the menu-bar app — or just use the web portal.
+
+Done.
+
+---
+
+## Architecture
+
+```
+┌──────────────────────┐    ┌───────────────────┐    ┌────────────────────┐
+│  Your Voice / Text   │───▶│  Pithagoras portal │───▶│  OmniRoute router  │
+│  (browser / VS Code) │◀───│  (web UI, port 4100)│◀───│  (model router)     │
+└──────────────────────┘    └───────────────────┘    └─────────┬──────────┘
+          │                    │                                │
+          │                    ▼                                ▼
+          │            ┌──────────────┐              ┌───────────────────┐
+          │            │  Pi agent    │              │  Provider pool    │
+          │            │  (coding agent)│             │  OpenAI / Anthropic│
+          │            └──────────────┘              │  Ollama / OpenRouter│
+          │                                          └───────────────────┘
+          ▼
+   ┌──────────────────────────────────┐
+   │  Breeze TTS 2  (spoken replies)  │
+   └──────────────────────────────────┘
+
+   ┌──────────────────────────────────┐
+   │  macOS Control App               │
+   │  (menu-bar icon, start/stop)     │
+   └──────────────────────────────────┘
 ```
 
-### Ollama models (optional, for local LLM)
+### Components
+
+- **Pithagoras portal** — the agent's web UI, auto-started by a LaunchAgent on
+  login. Talks to OmniRoute for model routing.
+- **Ollama** — a local LLM runtime. Runs `qwen`, `llama`, `phi3`, or any Ollama model.
+- **OmniRoute** — a model router that picks the right model per task (a small
+  model for quick tasks, a large model for complex reasoning, a vision model
+  for images).
+- **Whisper STT** — browser-based speech-to-text (no separate server needed
+  for STT; the portal serves the VAD model locally).
+- **Breeze TTS** — a local text-to-speech server using the Breeze TTS 2 model
+  with Metal (GPU) acceleration.
+- **VS Code extension** — a lightweight chat panel that talks to the portal.
+- **macOS control app** — a menu-bar status item that shows live status of all
+  services and lets you start/stop them without a terminal.
+- **mac-automation skill** — a safe, scoped helper that can open folders, apps,
+  URLs, emails, and send notifications — **no arbitrary code execution**.
+
+---
+
+## Hardware-aware model selection
+
+The TUI setup wizard (`setup.js`) detects your Mac's RAM and CPU, then recommends
+the best Ollama model for your hardware:
+
+| RAM | Recommended model | Context | Use case |
+|-----|------------------|---------|----------|
+| < 8 GB | `tinyllama:1.1b` | 2,048 | Light tasks, quick responses |
+| 8 GB | `phi3:mini` | 4,096 | General coding, reasoning, chat |
+| 16 GB | `llama3:8b` | 8,192 | Complex coding, multi-step reasoning |
+| 8 GB (alt) | `mistral:7b` | 8,192 | Fast coding, speed/quality balance |
+| 8 GB (alt) | `qwen2:7b` | 32,768 | Multilingual tasks, long context |
+| 16 GB | `qwen-32k` | 32,768 | Long documents, large codebases |
+| 32 GB | `qwen-64k` | 65,536 | Very long context, large projects |
+
+> **Tip:** For `qwen3` models, use `context_length: 32768` and
+> `OLLAMA_FLASH_ATTENTION=1` for best performance. Quantized `q4_K_M` or `q8_0`
+> variants fit better in limited RAM.
+
+The wizard also checks if Ollama is running, can pull the model for you, and
+writes a `config/sample-config.json` that the portal reads.
+
+---
+
+## Quick start
+
+### 1. Clone the repo
 
 ```bash
-ollama pull qwen-64k
-ollama pull qwen-32k
-```
-
-## Quick setup
-
-```bash
-git clone https://github.com/ghpontapalli/my-assistant
+git clone https://github.com/ghpontapalli/my-assistant.git
 cd my-assistant
+```
+
+### 2. (Optional) Run the TUI wizard to pick a model
+
+```bash
+node setup.js
+```
+
+This detects your hardware, recommends a model, checks Ollama connectivity,
+optionally pulls the model, and writes a sample config.
+
+### 3. Run the main setup script
+
+```bash
 ./scripts/setup.sh
 ```
 
-The setup script:
-1. Clones and builds the core portal
-2. Generates the `.env` config with your workspace path
-3. Creates the audio.cpp TTS server config
-4. Installs the VS Code extension
-5. Creates launch agents for auto-start at login
-6. Registers everything with `launchctl`
-7. Launches Docker Desktop
+This:
+- clones the Pithagoras core into `~/Documents/my-assistant-core`,
+- runs `npm install` and `npm run build`,
+- generates a `.env` with a random portal secret,
+- creates TTS/STT server configs,
+- installs the VS Code extension,
+- creates LaunchAgents for all 5 services.
 
-## Docker
+### 4. Start the assistant
 
-Docker Desktop is required for the Browser extension (agent-driven browsing). The setup script launches Docker, but you need to:
-
-1. Sign in to Docker Desktop once after install
-2. Enable **Start at login** in Docker Desktop preferences
-
-After that, Docker starts automatically on every login and stays signed in. No manual login needed.
-
-## Provider setup
-
-My Assistant uses pi's `models.json` to define providers. Configure them through the portal at **Settings → Providers**, or by editing `~/.pi/agent/models.json` directly.
-
-### OmniRoute (local router gateway)
-
-A local model router that aggregates multiple providers behind a single OpenAI-compatible endpoint at `127.0.0.1:20128`.
-
-```json
-{
-  "omniroute": {
-    "baseUrl": "http://127.0.0.1:20128/v1",
-    "api": "openai-completions",
-    "apiKey": "sk-YOUR-OMNIROUTE-KEY",
-    "models": [
-      { "id": "auto/best-coding", "contextWindow": 1050000 },
-      { "id": "auto/best-reasoning", "contextWindow": 1050000 },
-      { "id": "auto/best-fast", "contextWindow": 1050000 },
-      { "id": "auto/best-vision", "contextWindow": 1050000 },
-      { "id": "auto/best-chat", "contextWindow": 1050000 },
-      { "id": "auto/best-coding-fast", "contextWindow": 1050000 },
-      { "id": "auto/pro-coding", "contextWindow": 1050000 },
-      { "id": "auto/pro-reasoning", "contextWindow": 1050000 }
-    ]
-  }
-}
-```
-
-The `auto/*` routes pick the best available model automatically. The `opencode-go/*` routes proxy to specific models like DeepSeek, Qwen, Kimi, GLM, Grok, and more.
-
-### OpenRouter (cloud, many free models)
-
-Access to hundreds of models through a single API key. Many have free tiers.
-
-1. Get an API key at [openrouter.ai](https://openrouter.ai)
-2. In the portal: **Settings → Providers → OpenRouter** → paste your key
-3. Or set `OPENROUTER_API_KEY` in your `.env` file
-
-**Notable free models:**
-
-| Model | Context | Use case |
-|---|---|---|
-| `openrouter/nvidia/nemotron-3.5-lightning:free` | 1M | Fast coding |
-| `openrouter/thinkingmachines/inkling-2-small:free-*` | 1M | Reasoning |
-| `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | 1M | Heavy reasoning |
-| `openrouter/cohere/north-mini-code:free` | 256K | Code |
-| `openrouter/google/gemma-4-26b-a4b-it:free` | 262K | General chat |
-
-### DeepSeek (via OmniRoute opencode-go routes)
-
-Accessed through OmniRoute's `opencode-go` routes. No separate key needed beyond the OmniRoute key.
-
-| Model | Context | Notes |
-|---|---|---|
-| `opencode-go/deepseek-v4-pro` | 1M | Best DeepSeek, multi-effort |
-| `opencode-go/deepseek-v4-flash` | 1M | Fast variant, multi-effort |
-| `opencode-go/deepseek-v4.1-flash` | 1M | Latest flash |
-| `opencode-go/deepseek-v4-flash-vision-exp` | 1M | Vision capable, experimental |
-
-Select any `opencode-go/deepseek-*` model in the model picker. Effort levels: append `-low`, `-high`, `-max`.
-
-### Qwen (via Ollama, fully local)
-
-Runs locally through Ollama at `127.0.0.1:11434`. No API key, no network calls.
+Open the macOS menu-bar app (the CPU icon) and click **▶ Start Pithagoras**,
+or run:
 
 ```bash
-ollama pull qwen-64k
-ollama pull qwen-32k
+./scripts/my-assistant.sh start
 ```
 
-```json
-{
-  "ollama": {
-    "baseUrl": "http://127.0.0.1:11434/v1",
-    "api": "openai-completions",
-    "apiKey": "ollama",
-    "compat": { "supportsDeveloperRole": false, "supportsReasoningEffort": false },
-    "models": [
-      { "id": "qwen-64k:latest", "contextWindow": 262144, "input": ["text", "image"], "reasoning": true },
-      { "id": "qwen-32k:latest", "contextWindow": 262144, "input": ["text", "image"], "reasoning": true }
-    ]
-  }
-}
+Open the web portal: **http://127.0.0.1:4100**
+
+---
+
+## macOS Control App
+
+A menu-bar status item (`control/Control.swift`) shows live status of all 5
+services and lets you start/stop them without a terminal:
+
+```
+  ●  🌐  Portal
+  ●  🧠  Ollama
+  ●  🔀  OmniRoute
+  ●  🎤  Voice
+  ○  🐳  Docker
+
+  ▶  Start Pithagoras
+  ⏻  Stop Pithagoras
+  🎤  Voice ON
+  🔇  Voice OFF
+  ↻  Refresh status
+  ────
+  Quit control
 ```
 
-### NVIDIA NIM (cloud, build.nvidia.com)
+- **Green dot** next to a service = running. **Grey dot** = stopped.
+- **Build:** `swiftc control/Control.swift -o control/PithagorasControl`
+- **Run:** `./control/PithagorasControl &`
+- **The script path is configurable** via the `LIFECYCLE_SCRIPT` environment variable.
 
-Open models hosted on build.nvidia.com. Requires a NVIDIA API key.
-
-| Model | Use case |
-|---|---|
-| `nvidia/nvidia/nemotron-3.5-lightning-30b-a3b` | Fast coding |
-| `nvidia/nvidia/nemotron-3-ultra-550b-a55b` | Heavy reasoning |
-| `nvidia/meta/llama-3.2-90b-vision-instruct` | Vision |
-| `nvidia/openai/gpt-oss-20b` | Open weights, 400K context |
-
-### Other models via opencode-go routes
-
-| Model | Provider | Context |
-|---|---|---|
-| `opencode-go/gpt-6-luna` | OpenAI | 1.05M |
-| `opencode-go/claude-haiku-5-5` | Anthropic | 1M |
-| `opencode-go/grok-4.6` | xAI | 500K |
-| `opencode-go/glm-5.2` | Zhipu | 1M |
-| `opencode-go/kimi-k3` | Moonshot | 1M |
-| `opencode-go/qwen3.7-max` | Alibaba | 1M |
-| `opencode-go/mimo-v2.6-pro` | Xiaomi | 1M |
-| `opencode-go/minimax-m3` | MiniMax | 1M |
-
-## Voice server setup
-
-Configure in the portal at **Settings → Extensions → Voice servers**:
-
-| Field | Value |
-|---|---|
-| Speech recognition URL | `http://127.0.0.1:8082/inference` |
-| Speech recognition model | `whisper-1` |
-| Speech synthesis URL | `http://127.0.0.1:8081/v1/audio/speech` |
-| Speech synthesis model | `breeze-tts-2` |
-| Speech engine | `audio.cpp` |
-
-Click **Save**, then **Use for voice mode**.
-
-## Usage
-
-### After a cold boot
-1. Log in to your Mac — all services start automatically
-2. Browser opens automatically at `http://127.0.0.1:4100`
-3. Enter your password (set on first visit)
-4. Open VS Code — click the My Assistant icon in the activity bar
-
-### Voice mode
-Click the microphone button in any chat and talk. The assistant hears you through Whisper and replies through Breeze TTS.
-
-### Mac automation (by voice or text)
-Just ask:
-- "Open my Documents folder"
-- "Open GitHub in the browser"
-- "Open VS Code"
-- "Compose an email to john@example.com"
-- "Open WhatsApp"
-- "Show me a notification when done"
-
-**Allowed apps:** Safari, Firefox, Google Chrome, Visual Studio Code, Finder, Terminal, Notes, Calendar, Mail, Slack, Spotify, WhatsApp
-
-### Service control
-```bash
-./scripts/my-assistant.sh status     # check what's running
-./scripts/my-assistant.sh start      # start everything
-./scripts/my-assistant.sh stop       # stop everything
-./scripts/my-assistant.sh unload     # disable auto-start
-./scripts/my-assistant.sh load       # re-enable auto-start
-```
+---
 
 ## Project structure
 
 ```
 my-assistant/
-├── README.md
-├── LICENSE                    # Apache 2.0
+├── README.md              ← this file (human-facing overview)
+├── SETUP.md               ← step-by-step setup guide (16 sections)
+├── LICENSE
+├── .gitignore
+│
+├── setup.js               ← TUI wizard (hardware-aware model selection)
+│
 ├── scripts/
-│   ├── setup.sh               # one-command setup
-│   ├── my-assistant.sh        # start / stop / status
-│   └── mac-automation.sh      # safe Mac automation actions
-├── skills/
-│   └── mac-automation/
-│       └── SKILL.md           # agent skill for Mac control
-└── vscode-extension/          # installable .vsix panel extension
-    ├── extension.js
-    ├── package.json
-    └── icon.svg
+│   ├── setup.sh           ← one-command setup (clones core, builds, configures)
+│   ├── my-assistant.sh    ← start/stop all services via LaunchAgents
+│   └── mac-automation.sh  ← safe, scoped macOS automation helper
+│
+├── control/
+│   └── Control.swift      ← macOS menu-bar app source
+│
+├── config/
+│   ├── server.json.template  ← TTS server config template
+│   └── sample-config.json    ← sample hardware-aware config
+│
+├── vscode-extension/      ← VS Code chat panel extension
+│   ├── package.json
+│   ├── extension.js
+│   └── icon.svg
+│
+└── skills/
+    └── mac-automation/
+        └── SKILL.md       ← skill definition for the agent
 ```
 
-## Security notes
+---
 
-- All servers bind to `127.0.0.1` only — nothing is exposed to your network
-- Mac automation uses a fixed whitelist of allowed apps and validates all inputs
-- The portal requires a password you choose at first run
-- Voice models run fully locally — no audio leaves your machine
-- The VS Code extension embeds the portal in a webview over localhost only
-- API keys are stored locally in pi's config, never transmitted except to the provider
+## Voice mode
+
+Voice mode is **off by default**. To enable it:
+
+1. Start the Breeze TTS server (handled by the setup script / menu-bar app).
+2. Open the portal and click the microphone button.
+3. Speak — the browser's Whisper model transcribes your speech.
+4. The agent responds, and Breeze TTS speaks the reply back.
+
+### Voice style
+
+The assistant speaks in a warm, witty, companion-style voice:
+
+- **1–3 sentences per reply** — short, punchy, no long paragraphs.
+- **No markdown, no code dumps, no raw URLs** in spoken replies.
+- **Gentle humor** — a light touch of sarcasm or banter.
+- **Always ends with a question or suggestion** — keeps the conversation flowing.
+
+---
+
+## OmniRoute (model router)
+
+OmniRoute picks the right model per task:
+
+- **Quick tasks** → small, fast model (`tinyllama`, `phi3`).
+- **Complex reasoning** → large model (`llama3:8b`, `qwen-32k`).
+- **Vision** → a vision-capable model.
+- **Voice** → a fast, low-latency model.
+
+The router is managed as a LaunchAgent (`com.my-assistant.omniroute`).
+
+---
+
+## macOS automation
+
+The `mac-automation` skill is a **safe, scoped helper**. It can:
+
+- Open a folder in Finder.
+- Open a URL in a browser (Safari, Firefox, Chrome, VS Code).
+- Open an app from a whitelist of 12 common apps.
+- Compose an email in Mail.
+- Send a notification.
+- List folder contents.
+
+**It cannot execute arbitrary code.** The whitelist is:
+
+> Safari, Firefox, Google Chrome, Visual Studio Code, Finder, Terminal,
+> Notes, Calendar, Mail, Slack, Spotify, WhatsApp
+
+---
+
+## Multi-provider routing
+
+My Assistant supports one provider per provider type:
+
+- **OpenAI** — for cloud-based tasks.
+- **Anthropic** — for Claude models.
+- **Ollama** — for local LLMs.
+- **OpenRouter** — for access to many models via a single API.
+
+Provider keys are stored in `~/.pi/agent/auth.json` (never committed to git).
+
+---
+
+## Configuration
+
+All configuration lives in `.env` (auto-generated by `setup.sh`):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `4100` | Portal port |
+| `EXECUTOR` | `host` | Executor mode (`host` or `container`) |
+| `WORKSPACES_DIR` | `~/Documents` | Workspace directory |
+| `PORTAL_DATA_DIR` | `~/.my-assistant-data` | Data directory |
+| `PORTAL_SECRET` | *(random)* | Session cookie secret |
+| `STOP_ON_LOGOUT` | `false` | Whether to stop services on logout |
+| `LIFECYCLE_SCRIPT` | `scripts/my-assistant.sh` | Path to the control script |
+
+---
+
+## Security
+
+- **Single password auth** — the portal uses one password (not multi-tenant).
+- **Tailscale-friendly** — designed to run behind Tailscale or localhost.
+- **Host executor** — runs pi as a child process with your full permissions.
+- **Scoped automation** — `mac-automation.sh` has a whitelist, no arbitrary code.
+- **No cloud dependency** — everything runs locally. Ollama, Breeze TTS, and
+  the portal are all on your machine.
+- **`.env` is git-ignored** — secrets never reach the repo.
+
+---
+
+## Troubleshooting
+
+### Ollama not found
+
+```bash
+brew install ollama
+ollama serve &
+```
+
+### Portal not starting
+
+Check the LaunchAgent logs:
+
+```bash
+./scripts/my-assistant.sh status
+log stream --predicate 'subsystem == "com.my-assistant.portal"'
+```
+
+### Menu-bar app not showing
+
+Rebuild and relaunch:
+
+```bash
+swiftc control/Control.swift -o control/PithagorasControl
+killall PithagorasControl 2>/dev/null
+./control/PithagorasControl &
+```
+
+### Voice not working
+
+1. Ensure the Breeze TTS server is running: `./scripts/my-assistant.sh status`
+2. Check browser microphone permissions (click the lock icon in the address bar).
+3. Make sure no other app is using the microphone.
+
+### Model too slow
+
+Re-run the TUI wizard to pick a smaller model:
+
+```bash
+node setup.js
+```
+
+Or manually pull a smaller model:
+
+```bash
+ollama pull tinyllama:1.1b
+```
+
+---
 
 ## License
 
-Apache 2.0
+Apache-2.0 — see [LICENSE](./LICENSE).

@@ -1,0 +1,10 @@
+{
+  "model": "qwen-32k",
+  "context_length": 32768,
+  "hardware": "16GB RAM, 10 cores, macOS",
+  "ollama": {
+    "url": "http://127.0.0.1:11434",
+    "enabled": true
+  },
+  "created_at": "2026-07-25T00:00:00.000Z"
+}

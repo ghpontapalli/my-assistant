@@ -1,37 +1,50 @@
-# Secrets and credentials — never commit these
+# ─── Secrets & env ────────────────────────────────────────────────────
 .env
 .env.*
-*.pem
+!.env.example
+*.secret
 *.key
-*.p12
-*.pfx
-credentials.json
-auth.json
-auth_token
+*.pem
+config/server.json
+*.local.json
 
-# OmniRoute local data (contains API keys and call logs)
+# ─── OmniRoute local runtime ─────────────────────────────────────────
 .omniroute/
+.omniroute*.json
 
-# Node
-node_modules/
+# ─── Data dirs & logs ────────────────────────────────────────────────
+data/
+logs/
+pids/
 *.log
-npm-debug.log*
 
-# VS Code extension build artifacts
-*.vsix
-
-# OS files
+# ─── OS & editor cruft ───────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-
-# Editor files
-.vscode/
-.idea/
 *.swp
 *.swo
 *~
+.idea/
+.vscode/
+!.vscode/extensions.json
 
-# Local config that may contain keys
-config/server.json
-config/server.local.json
-*.local.json
+# ─── Build output & packages ─────────────────────────────────────────
+dist/
+out/
+build/
+*.vsix
+*.tgz
+node_modules/
+package-lock.json
+
+# ─── macOS control app & temp artifacts ──────────────────────────────
+control/*.app/
+control/*.app
+control/*.bak
+*.bak
+/tmp/my-assistant-*
+/tmp/my-assistant-logs/
+/tmp/my-assistant-pids/
+
+# ─── Pithagoras core clone (created by setup.sh, not tracked) ────────
+core/

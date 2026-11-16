@@ -29,6 +29,11 @@ command -v code >/dev/null 2>&1 || warn "VS Code CLI not found. Extension won't 
 command -v audiocpp_server >/dev/null 2>&1 || warn "audiocpp_server not found. Install: brew install audio-cpp"
 command -v whisper-server  >/dev/null 2>&1 || warn "whisper-server not found. Install: brew install whisper-cpp"
 
+# ---- Hardware-aware model selection ----
+info "[1/6] Hardware-aware model selection..."
+node "$PROJECT_DIR/setup.js" || warn "Model wizard skipped or failed; continuing..."
+echo
+
 # ---- Clone and build core ----
 if [ ! -d "$ASSISTANT_DIR" ]; then
   info "Cloning core..."
