@@ -229,6 +229,20 @@ app.post("/api/auth/logout", async (req, res) => {
   signOut(req, res);
   const endSession = await endSessionUrl();
   res.json({ ok: true, ...(endSession ? { endSession } : {}) });
+
+  // Gracefully stop lifecycle services if requested via query param or env
+  const stopServices = req.query?.stop === "true" || process.env.STOP_ON_LOGOUT === "true";
+  if (stopServices) {
+    const { exec } = require("child_process");
+    const scriptPath = process.env.LIFECYCLE_SCRIPT || "./scripts/lifecycle.sh";
+    setTimeout(() => {
+      exec(`bash ${scriptPath} stop`, () => {
+        // Graceful shutdown — close server then exit
+        server.close(() => process.exit(0));
+        setTimeout(() => process.exit(0), 5000).unref();
+      });
+    }, 500);
+  }
 });
 
 app.use(oidcRouter(loginAttempts));

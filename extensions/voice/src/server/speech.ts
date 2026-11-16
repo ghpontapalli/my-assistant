@@ -3,7 +3,7 @@ import { endpoints, type TtsEngine } from "../engines";
 import { isKokoroVoice } from "../kokoro-voices";
 import { spokenNumbers } from "../numbers";
 import * as service from "./service";
-import { speech } from "./store";
+import { speech, setting } from "./store";
 import { findVoice, voiceAudio } from "./voices";
 
 /**
@@ -26,14 +26,27 @@ export async function transcribe(wav: Buffer, signal: AbortSignal): Promise<stri
   const form = new FormData();
   form.set("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "recording.wav");
   form.set("response_format", "json");
-  form.set("language", speech().language);
+  if (speech().language) form.set("language", speech().language);
   // audio.cpp names the model it loaded; Whisper.cpp has one model, and is sent none.
   if (listen.model) form.set("model", listen.model);
+  // Bias the decoder toward names and terms it otherwise mangles: a proper-noun hint
+  // (e.g. "Sai Deekshitha") makes Whisper far less likely to hear "Sai Dixita".
+  const prompt = setting("asrPrompt");
+  if (prompt && prompt.trim()) form.set("prompt", prompt.trim());
   const upstream = await fetch(listen.url, { method: "POST", body: form, redirect: "error", signal });
   if (!upstream.ok) throw new Error(`${name} returned HTTP ${upstream.status}`);
   const result = (await upstream.json()) as { text?: unknown };
   if (typeof result.text !== "string") throw new Error(`${name} returned no transcript`);
-  return result.text;
+  // Fix proper nouns Whisper confounds with the nearest common word: "Sai Dixita" -> "Sai Deekshitha".
+  const corrections = setting("corrections");
+  let text = result.text;
+  if (corrections) {
+    for (const [misheard, corrected] of corrections) {
+      const pattern = new RegExp(`\\b${misheard}\\b`, "gi");
+      text = text.replace(pattern, corrected);
+    }
+  }
+  return text;
 }
 
 const ENGINE_NAMES: Record<TtsEngine, string> = { breeze: "Breeze", chatterbox: "Chatterbox", kokoro: "Kokoro" };

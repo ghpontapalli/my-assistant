@@ -91,7 +91,7 @@ export const portalSecurityHeaders: RequestHandler = (_req, res, next) => {
     "font-src 'self' data:", "media-src 'self' blob: data:",
     "connect-src 'self' https: http: ws: wss:", "worker-src 'self' blob:",
     "frame-src 'self' https: http:", "object-src 'none'", "base-uri 'self'",
-    "frame-ancestors 'self'", "form-action 'self'",
+    "frame-ancestors 'self' http://localhost:* http://127.0.0.1:*", "form-action 'self'",
   ].join('; '));
   res.setHeader('X-Content-Type-Options', 'nosniff');
   next();

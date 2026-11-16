@@ -24,3 +24,13 @@ test-results/
 # What a read-only open of a database leaves beside it (the upgrade fixtures are kept without a journal, so nothing should)
 core/server/test/fixtures/*.db-shm
 core/server/test/fixtures/*.db-wal
+
+# macOS control app — compiled binary and backups should not be in the repo
+control/PithagorasControl.app/
+control/*.bak
+*.bak
+
+# Temp runtime files
+/tmp/pithagoras-*
+pids/
+logs/

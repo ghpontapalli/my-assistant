@@ -10,6 +10,7 @@
     "packages/extension-api"
   ],
   "scripts": {
+    "setup": "node setup.js",
     "build": "npm run build -w core/server && npm run build -w core/web && npm run build:extensions && node scripts/old-entries.mjs",
     "build:extensions": "node scripts/build-extensions.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
@@ -17,6 +18,13 @@
     "dev:server": "npm run dev -w core/server",
     "dev:web": "npm run dev -w core/web",
     "start": "node core/server/dist/index.js",
+    "start:all": "bash scripts/lifecycle.sh start",
+    "start:bg": "bash scripts/lifecycle.sh start-bg",
+    "stop": "bash scripts/lifecycle.sh stop",
+    "status": "bash scripts/lifecycle.sh status",
+    "autostart": "bash scripts/autostart.sh install",
+    "autostart:remove": "bash scripts/autostart.sh uninstall",
+    "autostart:status": "bash scripts/autostart.sh status",
     "reset-password": "node core/server/dist/reset-password.js",
     "sso-only-off": "node core/server/dist/sso-only-off.js",
     "docs": "npm run dev -w docs",

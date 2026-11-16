@@ -20,6 +20,16 @@ export interface Settings extends Partial<Speech> {
   setupPending?: boolean;
   /** Whether the speech model is let go of once voice mode no longer uses it: on unless set false. */
   lazyLoad?: boolean;
+  /**
+   * A hint fed to the ASR decoder so it hears names and proper nouns right (e.g. "Sai Deekshitha, Priya, Gopal").
+   * Whisper.cpp reads it as an initial prompt, biasing the language model toward these tokens.
+   */
+  asrPrompt?: string;
+  /**
+   * Post-transcription corrections: pairs of [misheard, corrected] applied case-insensitively to
+   * the final text, fixing proper nouns Whisper confounds with the nearest common word.
+   */
+  corrections?: Array<[string, string]>;
 }
 
 /** How it speaks, as set on the page (Your voice), each as it is where nothing is said. */
