@@ -5,6 +5,5 @@
   "ollama": {
     "url": "http://127.0.0.1:11434",
     "enabled": true
-  },
-  "created_at": "2026-07-25T00:00:00.000Z"
+  }
 }
