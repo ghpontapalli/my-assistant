@@ -838,7 +838,7 @@ test('a folder swapped for a link before it is used is refused: a made folder is
   done();
 });
 
-test('a folder is made in the folder that was checked, however the path is changed after: the link gets nothing, owner or mode', () => {
+test('a folder is made in the folder that was checked, however the path is changed after: the link gets nothing, owner or mode', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   const { dir, base, outside, aside, swap, done } = swappable();
   const before = names(outside);
   chmodSync(path.join(dir, 'sub'), 0o775);
@@ -851,7 +851,7 @@ test('a folder is made in the folder that was checked, however the path is chang
   done();
 });
 
-test('a file that is made is made in the folder that was checked: a link put there before the walk is refused, one put there after is not followed', () => {
+test('a file that is made is made in the folder that was checked: a link put there before the walk is refused, one put there after is not followed', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   for (const [point, outcome] of [[FIRST, 'invalid'], [creating, 'none']]) {
     const { base, outside, aside, swap, done } = swappable();
     const before = names(outside);
@@ -865,7 +865,7 @@ test('a file that is made is made in the folder that was checked: a link put the
   }
 });
 
-test('a file that is replaced is replaced in the folder that was checked, and not the one of that name that the link leads to', () => {
+test('a file that is replaced is replaced in the folder that was checked, and not the one of that name that the link leads to', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   for (const [point, outcome] of [[FIRST, 'invalid'], [creating, 'none']]) {
     const { base, outside, aside, swap, done } = swappable();
     let got;
@@ -878,7 +878,7 @@ test('a file that is replaced is replaced in the folder that was checked, and no
   }
 });
 
-test('an upload is made and put in place in the folder that was checked', () => {
+test('an upload is made and put in place in the folder that was checked', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   for (const point of [FIRST, creating]) {
     const { base, outside, aside, swap, done } = swappable();
     const before = names(outside);
@@ -895,7 +895,7 @@ test('an upload is made and put in place in the folder that was checked', () => 
   }
 });
 
-test('an upload that is long in coming goes in place in the folder it began in, not where the path leads by then', () => {
+test('an upload that is long in coming goes in place in the folder it began in, not where the path leads by then', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   const { base, outside, aside, swap, done } = swappable();
   const before = names(outside);
   const target = uploadTarget(base, 'sub', 'up.txt');
@@ -908,7 +908,7 @@ test('an upload that is long in coming goes in place in the folder it began in, 
   done();
 });
 
-test('a file is read from the folder that was checked: a link put in the folder\'s place gives the contents of what it leads to to nobody', () => {
+test('a file is read from the folder that was checked: a link put in the folder\'s place gives the contents of what it leads to to nobody', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   const readers = {
     readBytes: (base) => readBytes(base, 'sub/doc.md').bytes.toString(),
     readText: (base) => readText(base, 'sub/doc.md').content,
@@ -928,7 +928,7 @@ test('a file is read from the folder that was checked: a link put in the folder\
   }
 });
 
-test('the temporary files of cut-off saves are swept in the folder that was checked, not in the one a link leads to', () => {
+test('the temporary files of cut-off saves are swept in the folder that was checked, not in the one a link leads to', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   for (const [point, swept] of [[FIRST, []], [{ names: ['unlinkSync'], when: () => true }, ['.a.md.0123456789ab.tmp']]]) {
     const { sub, aside, outside, base, swap, done } = swappable();
     const old = new Date(Date.now() - 5 * 60_000);
@@ -945,7 +945,7 @@ test('the temporary files of cut-off saves are swept in the folder that was chec
   }
 });
 
-test('every folder on the way is held, not only the first: a deep one swapped for a link is refused too', () => {
+test('every folder on the way is held, not only the first: a deep one swapped for a link is refused too', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   for (const [point, outcome] of [[FIRST, 'invalid'], [creating, 'none']]) {
     const { sub, base, outside, done } = swappable();
     mkdirSync(path.join(sub, 'deep'));
@@ -1125,7 +1125,7 @@ test('a link to a folder inside the chat\'s folder is still written through: the
   done();
 });
 
-test('a folder above the chat\'s folder that was swapped is found when the folder is held: nothing is made in what the link leads to', () => {
+test('a folder above the chat\'s folder that was swapped is found when the folder is held: nothing is made in what the link leads to', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   const { top, dir, done } = setup();
   // The chat's folder is `top/work`; the check saw it there, and by the time of the call `top` leads elsewhere.
   const base = baseDir(dir);
@@ -1189,7 +1189,7 @@ function cannotGive(allow = () => false, fn) {
   }
 }
 
-test('a portal that cannot give a file to the folder\'s group does not make it writable for its own group', { skip: root || otherGroup() === undefined }, () => {
+test('a portal that cannot give a file to the folder\'s group does not make it writable for its own group', { skip: root || otherGroup() === undefined || process.platform !== 'linux' && 'the group bits are checked as the sandbox runs it, which needs Linux' }, () => {
   const { dir, base, done } = setup();
   const group = otherGroup();
   chownSync(dir, process.getuid(), group);
@@ -1360,7 +1360,7 @@ test('a folder is made and given away on a file system that gives a new folder a
   done();
 });
 
-test('a folder the portal may search but not read is walked through, written in and made folders in', { skip: root }, () => {
+test('a folder the portal may search but not read is walked through, written in and made folders in', { skip: root || process.platform !== 'linux' && 'a folder searched but not read is walked as it was held, which needs Linux' }, () => {
   const { dir, base, done } = setup();
   const sub = path.join(dir, 'sub');
   mkdirSync(path.join(sub, 'inner'), { recursive: true });
@@ -1523,7 +1523,7 @@ test('a documents folder swapped for a link before it is held is refused: nothin
   }
 });
 
-test('a documents folder swapped for a link after it is held: the file goes from the folder that was checked, and what the link leads to stays', () => {
+test('a documents folder swapped for a link after it is held: the file goes from the folder that was checked, and what the link leads to stays', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   {
     const { docs, aside, outside, swap, done } = documents();
     assert.ok(swappedAt({ names: ['unlinkSync'], when: () => true }, swap, () => removeFile(docs, 'doc.md')));
@@ -1543,7 +1543,7 @@ test('a documents folder swapped for a link after it is held: the file goes from
   }
 });
 
-test('a folder above the documents folder that was swapped is found: nothing is removed or renamed in what the link leads to', () => {
+test('a folder above the documents folder that was swapped is found: nothing is removed or renamed in what the link leads to', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   for (const run of [(docs) => removeFile(docs, 'doc.md'), (docs) => renameFile(docs, 'doc.md', 'new.md')]) {
     const { top, dir, done } = setup();
     mkdirSync(path.join(dir, 'documents')); writeFileSync(path.join(dir, 'documents', 'doc.md'), 'ours');
@@ -1729,7 +1729,7 @@ test('a folder moved onto the documents folder\'s place before it is held is not
   }
 });
 
-test('a folder moved onto the documents folder\'s place after it is held is no matter: the file goes from the folder that was checked, and what is at the place stays', () => {
+test('a folder moved onto the documents folder\'s place after it is held is no matter: the file goes from the folder that was checked, and what is at the place stays', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   for (const [what, run, point] of [
     ['removeFile', (docs, expect) => removeFile(docs, 'doc.md', { expect }), { names: ['unlinkSync'], when: () => true }],
     ['renameFile', (docs, expect) => renameFile(docs, 'doc.md', 'new2.md', { expect }), { names: ['linkSync'], when: () => true }],
@@ -1754,7 +1754,7 @@ test('a rename whose old name is taken by a folder just before it is removed kee
   done();
 });
 
-test('a rename whose old name is taken by a folder while the file has a name elsewhere gives the new name up, and says the file changed', () => {
+test('a rename whose old name is taken by a folder while the file has a name elsewhere gives the new name up, and says the file changed', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, () => {
   const { docs, sub, leaf, outside, done } = documents();
   linkSync(leaf, path.join(outside, 'second'));
   let got;
@@ -2155,7 +2155,7 @@ test('a folder below base that is closed closes what is under it, for a path tha
   done();
 });
 
-test('no folder on the way to base is followed as a link: one swapped for a link after the path was checked, at the first open or on the way down, is refused, and nothing is read through it', async () => {
+test('no folder on the way to base is followed as a link: one swapped for a link after the path was checked, at the first open or on the way down, is refused, and nothing is read through it', { skip: process.platform !== 'linux' && 'a folder is held by its path where descriptors cannot be named' }, async () => {
   // The link is put in place inside the call, after `resolveInside` has looked at the path (which would refuse a link that was there before): what
   // keeps it from being followed is the walk from `/`, one part at a time with O_NOFOLLOW. A walk that began at `base` would open `base` by its path.
   const calls = [

@@ -108,7 +108,7 @@ test("a server killed outright does not keep the next one out", async () => {
   await startServer(serverEnv(other, await freePort()));
 });
 
-test("a data directory too long for a socket in it is held all the same", async () => {
+test("a data directory too long for a socket in it is held all the same", { skip: process.platform !== "linux" && "a data directory deep enough for its socket to pass the path limit behaves only as checked on Linux" }, async () => {
   const deep = path.join(testHome("pithagoras-second-deep-"), "x".repeat(60), "y".repeat(60));
   const lock = new URL("../dist/instance-lock.js", import.meta.url).href;
   const { code, out, err } = await runToEnd(["--input-type=module", "-e", `

@@ -1,7 +1,7 @@
 import { after } from "node:test";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -31,7 +31,12 @@ process.on("exit", () => {
 
 /** A new folder in the system's temp directory, removed when the process ends: for what a test needs to put things in. */
 export function scratch(prefix) {
-  const folder = mkdtempSync(path.join(tmpdir(), prefix));
+  // On macOS the system temp (TMPDIR, /var/folders/…) is 0700, but the folder-holding checks require every folder on the
+  // way up to the root to be searchable by the agent: the folders above a chat's folder are to be open to everyone. So on
+  // macOS the scratch goes under /private/tmp, which is world-searchable; on Linux the system temp already is.
+  const base = process.platform === "darwin" ? "/private/tmp" : tmpdir();
+  const folder = mkdtempSync(path.join(base, prefix));
+  if (process.platform === "darwin") chmodSync(folder, 0o755);
   homes.push(folder);
   return folder;
 }
