@@ -23,6 +23,16 @@ export interface VoiceConfig {
    * as it was before there was a switch.
    */
   conversation?: boolean;
+  /**
+   * Whether spoken replies start as each finished sentence is written, instead of waiting for the whole reply to be
+   * generated. Absent falls back to the VOICE_SENTENCE_CHUNKS environment variable.
+   */
+  sentenceChunks?: boolean;
+  /**
+   * Whether the next sentence is turned to speech while the current one is still spoken, so they run together. Absent
+   * falls back to the VOICE_TTS_PREFETCH environment variable.
+   */
+  ttsPrefetch?: boolean;
 }
 /** Long enough for the built-in text several times over; every voice turn carries it. */
 export const MAX_RESPONSE_INSTRUCTIONS = 8000;
@@ -52,7 +62,12 @@ export function validateConfig(value: any) {
   if (vad.negativeSpeechThreshold >= vad.positiveSpeechThreshold) throw new Error('Speech-end threshold must be lower than speech-start threshold');
   const conversation = value?.conversation ?? true;
   if (typeof conversation !== "boolean") throw new Error("Voice conversations are switched on with true and off with false");
-  return { vad, responseInstructions: savedInstructions(responseInstructions), skipThinkingProviders, voiceModel, conversation };
+  // The pipeline flags, set from Settings: "Speak as it is written" streams a finished sentence to speech as it is
+  // written, and "Prepare the next sentence" makes it while the current one is spoken. Only when the page sends a
+  // boolean; a page that omits them keeps the value there is, and an env var is the default where nothing is saved.
+  const sentenceChunks = typeof value?.sentenceChunks === "boolean" ? value.sentenceChunks : undefined;
+  const ttsPrefetch = typeof value?.ttsPrefetch === "boolean" ? value.ttsPrefetch : undefined;
+  return { vad, responseInstructions: savedInstructions(responseInstructions), skipThinkingProviders, voiceModel, conversation, ...(sentenceChunks !== undefined ? { sentenceChunks } : {}), ...(ttsPrefetch !== undefined ? { ttsPrefetch } : {}) };
 }
 /**
  * The providers as saved: names as the model menu shows them, each once. The
@@ -229,7 +244,8 @@ setVoiceSpeaks(() => {
  * it is now, and what the portal is set to.
  */
 function shown() {
-  const { provider, vad, responseInstructions, skipThinkingProviders, voiceModel, conversation } = config();
+  const base = config();
+  const { provider, vad, responseInstructions, skipThinkingProviders, voiceModel, conversation } = base;
   const source = voiceProviders().get(provider);
   const state = source && stateOf(provider, source);
   return {
@@ -246,8 +262,9 @@ function shown() {
     conversation: conversation !== false,
     comparison: process.env.VOICE_COMPARISON === "true",
     statusSpeech: process.env.VOICE_STATUS_SPEECH !== "false",
-    ttsPrefetch: process.env.VOICE_TTS_PREFETCH === "true",
-    sentenceChunks: process.env.VOICE_SENTENCE_CHUNKS === "true",
+    // A value saved from Settings wins; an env var is only the default where the page never set one.
+    ttsPrefetch: base.ttsPrefetch ?? (process.env.VOICE_TTS_PREFETCH === "true"),
+    sentenceChunks: base.sentenceChunks ?? (process.env.VOICE_SENTENCE_CHUNKS === "true"),
     pipelineMode: process.env.VOICE_PIPELINE_MODE === "sequential" ? "sequential" : "parallel",
   };
 }

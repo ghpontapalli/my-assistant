@@ -507,7 +507,7 @@ export interface VoiceConfig {
   vad?: typeof DEFAULT_VAD;
 }
 /** What the page saves of voice mode: whether a spoken conversation is offered and how it goes, whatever listens and speaks for it. */
-export interface VoiceModeSave { vad: typeof DEFAULT_VAD; responseInstructions: string; skipThinkingProviders?: string[]; voiceModel: string; conversation: boolean }
+export interface VoiceModeSave { vad: typeof DEFAULT_VAD; responseInstructions: string; skipThinkingProviders?: string[]; voiceModel: string; conversation: boolean; sentenceChunks?: boolean; ttsPrefetch?: boolean }
 
 /** Who is signed in, and how one signs in. */
 export interface AuthStatus {

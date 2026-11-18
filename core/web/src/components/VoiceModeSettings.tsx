@@ -56,7 +56,7 @@ export function VoiceModeSettings({ onError, onExtensions, onSource }: {
     const text = next.responseInstructions ?? "";
     try {
       // Text that is still the built-in one this page was given is sent as nothing: the portal may have been updated since, and its newer text is then the one to follow.
-      await saver.request({ vad: { ...DEFAULT_VAD, ...next.vad }, responseInstructions: text.trim() === builtIn.trim() ? "" : text, skipThinkingProviders: next.skipThinkingProviders, voiceModel: next.voiceModel ?? "", conversation: next.conversation !== false });
+      await saver.request({ vad: { ...DEFAULT_VAD, ...next.vad }, responseInstructions: text.trim() === builtIn.trim() ? "" : text, skipThinkingProviders: next.skipThinkingProviders, voiceModel: next.voiceModel ?? "", conversation: next.conversation !== false, sentenceChunks: next.sentenceChunks, ttsPrefetch: next.ttsPrefetch });
     } catch (e) {
       onError((e as Error).message);
       // What was refused is not left on the page as if it were saved.
@@ -115,6 +115,14 @@ export function VoiceModeSettings({ onError, onExtensions, onSource }: {
         ...models.map(m => ({ value: `${m.provider}/${m.id}`, label: m.name || m.id, hint: `${m.provider}/${m.id}` })),
       ]} />
       <p className="mt-1.5 text-xs text-fg-faint">{t("The model that answers spoken messages, so a slow chat model does not slow down a conversation. A spoken message that starts a run is answered by it and the chat goes back to its own model afterwards; the model picker of the chat is not changed.")}</p>
+    </div>}
+    {speaking && <div className="space-y-2">
+      <SwitchRow title={t("Speak as it is written")} on={config.sentenceChunks === true}
+        onChange={on => void commit({ sentenceChunks: on })}
+        detail={t("Starts speaking a finished sentence the moment it is written, instead of waiting for the whole reply. Makes voice mode answer sooner.")} />
+      <SwitchRow title={t("Prepare the next sentence")} on={config.ttsPrefetch === true}
+        onChange={on => void commit({ ttsPrefetch: on })}
+        detail={t("Makes the next sentence while the current one is spoken, so they run together. Best with “Speak as it is written” on.")} />
     </div>}
     {speaking && <div className="space-y-2">
       <label className="block text-xs text-fg-muted">{t("Reply without thinking first on")}
